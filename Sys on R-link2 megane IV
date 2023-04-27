@@ -1,0 +1,45 @@
+#include <mcp_can.h>
+#include <spi.h>
+
+const int SPI_CS_PIN = 10; //Selectare pin CS modul can
+
+MCP_CAN CAN(SPI_CS_PIN); 
+
+void setup()
+{
+pinMode(pin,INPUT);
+Serial.begin(115200);
+
+while (CAN_OK != CAN.begin(CAN_500KBPS, MCP_8MHz)) //initializare modul can
+{
+Serial.println("CAN BUS Shield init fail");
+Serial.println(" Init CAN BUS Shield again");
+delay(100);
+}
+Serial.println("CAN BUS Shield init ok!");
+}
+
+unsigned char stmp1[8] = { 0xC2, 0x05, 0x20, 0x00, 0x46, 0x95, 0x01, 0x10};//454 adresa din bcm
+unsigned char stmp2[8] = { 0x34, 0x55, 0xAC, 0x00, 0xFF, 0xFF, 0xFF, 0xFF};//45B adresa din bcm
+unsigned char stmp3[8] = { 0x18, 0xA5, 0x62, 0xC0, 0x82, 0x00, 0x0D, 0x00};//459 adresa din bcm
+unsigned char stmp4[8] = { 0x10, 0x08, 0x00, 0x00, 0x2A, 0x20, 0x00, 0x00};//458 adresa din bcm
+unsigned char stmp5[8] = { 0xE4, 0x00, 0x00, 0x02, 0xC0, 0xFF, 0xFF, 0xFF};//453 adresa din bcm
+unsigned char stmp6[8] = { 0x40, 0x07, 0xFF, 0xFF, 0xFF, 0xE6, 0xF8, 0xF8};//452 adresa din bcm
+unsigned char stmp7[8] = { 0x02, 0x11, 0x22, 0x33, 0x44, 0x55, 0xFF, 0xFF};//368 adresa din bcm
+
+unsigned char stmp8[8] = { 0x87, 0x39, 0xAF, 0xE1, 0x41, 0x40, 0x39, 0xF2};//44E adresa din tablou de bord
+unsigned char stmp9[8] = { 0x8D, 0x3A, 0x1F, 0x03, 0xFF, 0x07, 0xBB, 0xBB};//2BE adresa din tablou de bord
+
+void loop()
+{
+CAN.sendMsgBuf(0x454, 0, 8, stmp1); //trimitere mesaje pe can vehicul
+CAN.sendMsgBuf(0x45B, 0, 4, stmp2);
+CAN.sendMsgBuf(0x459, 0, 8, stmp3);
+CAN.sendMsgBuf(0x458, 0, 8, stmp4);
+CAN.sendMsgBuf(0x453, 0, 5, stmp5);
+CAN.sendMsgBuf(0x452, 0, 6, stmp6);
+CAN.sendMsgBuf(0x368, 0, 8, stmp7);
+CAN.sendMsgBuf(0x44E, 0, 8, stmp8);
+delay(200);
+
+}
