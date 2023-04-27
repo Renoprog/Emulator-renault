@@ -1,0 +1,70 @@
+#include <mcp_can.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27,16,2);
+
+const int SPI_CS_PIN = 10;
+
+MCP_CAN CAN(SPI_CS_PIN); 
+
+unsigned char stmp[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+unsigned char len = 0;
+unsigned char rxBuf[8];
+long unsigned int rxId;
+
+void setup()
+{
+CAN.begin(MCP_STDEXT, CAN_500KBPS, MCP_8MHZ);
+     CAN.setMode(MCP_NORMAL);
+
+  lcd.init();
+  lcd.clear();
+  lcd.backlight();
+}
+
+void loop()
+{
+CAN.readMsgBuf(&rxId, &len, rxBuf);
+if(rxId == 0x551) { //temperatura motor
+ stmp[0]=rxBuf[0];
+ uint8_t temp;
+ temp = stmp[0];
+  lcd.setCursor(0,0);
+  lcd.print("EngT:");
+  lcd.setCursor(6,0);
+  lcd.print(temp - 40, DEC);
+  delay(200);
+  }
+if(rxId == 0x5C5) { //cantitate de benzina
+ stmp[0]=rxBuf[7];
+ uint8_t fuel;
+ fuel = stmp[0];
+  lcd.setCursor(0,1);
+  lcd.print("Fuel:");
+  lcd.setCursor(6,1);
+  lcd.print(fuel, DEC);
+  delay(200);
+  }
+if(rxId == 0x625) { //tensiune baterie
+  lcd.setCursor(9,0);
+  lcd.print("V:");
+  lcd.setCursor(11,0);
+  lcd.print(rxBuf[2]*0.0625, DEC);
+  delay(200);
+  }
+if(rxId == 0x60D) { //temperatura exterioara
+  lcd.setCursor(9,1);
+  lcd.print("Te:");
+  lcd.setCursor(13,1);
+  lcd.print(rxBuf[4]-40, DEC);
+  delay(200);
+  }
+/*if(rxId == 0x215) { //sarcina alternator
+  lcd.setCursor(9,1);
+  lcd.print("AL:");
+  lcd.setCursor(12,1);
+  lcd.print(rxBuf[0]*0.390625, DEC);
+  delay(200);
+  }*/
+  } 
+   
