@@ -1,0 +1,198 @@
+#include <mcp_can.h>
+#include <spi.h>
+
+const int SPI_CS_PIN = 10; //selectare pin CS modul can 
+
+MCP_CAN CAN(SPI_CS_PIN); 
+
+uint8_t pingMsg[8] = {0X79, 0x00, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}; //mesaj ping-pong
+unsigned char stmp[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};// initializare string cu valoare 00
+unsigned char msg5c1[8] = {0x74, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}; //mesaj de rasuns de la adresa 5C1
+unsigned char msg4a9[8] = {0x74, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81}; // mesaj de raspuns de la adresa 
+
+unsigned char len = 0; //lungime
+unsigned char rxBuf[8]; //buffer
+long unsigned int rxId;  
+
+int temp = 10; //valoare initiala 10 grade celsiusius
+  
+unsigned char poz1 = ' '; //se face initializare cu ' '
+unsigned char poz2 = ' '; 
+unsigned char poz3 = ' '; 
+unsigned char poz4 = ' '; 
+unsigned char poz5 = ' '; 
+unsigned char poz6 = ' '; 
+unsigned char poz7 = ' '; 
+unsigned char poz8 = ' '; 
+
+unsigned char msg11[8] = {0x10, 0x1C, 0x77, 0x45, 0x55, 0xDF, 0x60, 0x01}; //asa primeste ecranul informatiile pentru afisare
+unsigned char msg12[8] = {0x21, poz1, poz2, poz3, poz4, poz5, poz6, poz7}; 
+unsigned char msg13[8] = {0x22, poz8, 0X10, 0X20, poz1, poz2, poz3, poz4};
+unsigned char msg14[8] = {0x23, poz5, poz6, poz7, poz8, 0x20, 0x20, 0x20};
+unsigned char msg15[8] = {0x24, 0x00, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81};
+
+void setup()
+{    
+CAN.begin(MCP_STDEXT, CAN_500KBPS, MCP_8MHZ);
+CAN.setMode(MCP_NORMAL);
+
+unsigned char startSyncMsg[8] = {0x7A, 0x00, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81};
+CAN.sendMsgBuf(0x3DF, NULL, 8, startSyncMsg);
+delay(1);
+
+CAN.sendMsgBuf(0x3DF, NULL, 8, pingMsg);  
+delay(1);
+
+unsigned char syncDispMsg[8] = {0x70, 0x1A, 0x12, 0x00, 0x00, 0x00, 0x00, 0x01};
+CAN.sendMsgBuf(0x3DF, NULL, 8, syncDispMsg);
+delay(10);
+
+CAN.sendMsgBuf(0x5C1, NULL, 8, msg5c1);
+CAN.sendMsgBuf(0x4A9, NULL, 8, msg4a9);
+unsigned char initDispMsg[8] = {0x70, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81};
+CAN.sendMsgBuf(0x121, NULL, 8, initDispMsg);
+delay(1);
+
+unsigned char registerDispMsg[8] = {0x70, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81};
+CAN.sendMsgBuf(0x1B1, NULL, 8, registerDispMsg);
+delay(1);
+
+unsigned char enableDispMsg[8] = {0x04, 0x52, 0x02, 0xFF, 0xFF, 0x81, 0x81, 0x81};
+CAN.sendMsgBuf(0x1B1, NULL, 8, enableDispMsg);
+delay(50); 
+}
+
+void loop()
+{
+CAN.readMsgBuf(&rxId, &len, rxBuf);
+if(rxId == 0x551) { //temperatura motor
+temp = rxBuf[0] - 40; //temperatura motor in grade celsius
+     if(temp < 0){
+          msg12[1] = 'T'; //poz1
+          msg13[4] = 'T'; //poz1
+          msg12[2] = 'M'; //poz2
+          msg13[5] = 'M'; //poz2
+          msg12[3] = 'O'; //poz3
+          msg13[6] = 'O'; //poz3
+          msg12[4] = 'T'; //poz4
+          msg13[7] = 'T'; //poz4
+          msg12[5] = ' '; //poz5
+          msg14[1] = ' '; //poz5
+        
+          msg12[6] = '-'; //poz6 SETARE SEMN -
+          msg14[2] = '-'; //poz6
+
+          msg13[1] = '"'; //poz8
+          msg14[4] = '"'; //poz8
+          }
+    int absTemp = abs(temp);
+      if (absTemp > 99){
+          msg12[1] = 'T'; //poz1
+          msg13[4] = 'T'; //poz1
+          msg12[2] = 'M'; //poz2
+          msg13[5] = 'M'; //poz2
+          msg12[3] = 'O'; //poz3
+          msg13[6] = 'O'; //poz3
+          msg12[4] = 'T'; //poz4
+          msg13[7] = 'T'; //poz4
+          msg12[5] = ' '; //poz5
+          msg14[1] = ' '; //poz5
+        
+          msg12[6] = (absTemp / 100) + 48;  //poz6
+          msg14[2] = (absTemp / 100) + 48;  //poz6
+   
+          msg12[7] = (absTemp / 10) % 10 + 48;  //poz7
+          msg14[3] = (absTemp / 10) % 10 + 48;  //poz7
+  
+          msg13[1] = absTemp % 10 + 48;  //poz8
+          msg14[4] = absTemp % 10 + 48;  //poz8
+          }
+      else if(absTemp > 9 && temp < 0){
+          msg12[1] = 'T'; //poz1
+          msg13[4] = 'T'; //poz1
+          msg12[2] = 'M'; //poz2
+          msg13[5] = 'M'; //poz2
+          msg12[3] = 'O'; //poz3
+          msg13[6] = 'O'; //poz3
+          msg12[4] = 'T'; //poz4
+          msg13[7] = 'T'; //poz4
+          msg12[5] = ' '; //poz5
+          msg14[1] = ' '; //poz5
+        
+          msg12[7] = (absTemp / 10) + 48;  //poz7
+          msg14[3] = (absTemp / 10) + 48;  //poz7
+
+          msg13[1] = (absTemp % 10) + 48;  //poz8
+          msg14[4] = (absTemp % 10) + 48;  //poz8
+          }
+        else if(absTemp > 9 && temp >= 0){
+          msg12[1] = 'T'; //poz1
+          msg13[4] = 'T'; //poz1
+          msg12[2] = 'M'; //poz2
+          msg13[5] = 'M'; //poz2
+          msg12[3] = 'O'; //poz3
+          msg13[6] = 'O'; //poz3
+          msg12[4] = 'T'; //poz4
+          msg13[7] = 'T'; //poz4
+          msg12[5] = ' '; //poz5
+          msg14[1] = ' '; //poz5
+            
+          msg12[6] = (absTemp / 10) + 48;  //poz6
+          msg14[2] = (absTemp / 10) + 48;  //poz6
+   
+          msg12[7] = (absTemp % 10) + 48;  //poz7
+          msg14[3] = (absTemp % 10) + 48;  //poz7
+
+          msg13[1] = '"'; //poz8
+          msg14[4] = '"'; //poz8
+          }
+        else if(temp < 0){
+          msg12[1] = 'T'; //poz1
+          msg13[4] = 'T'; //poz1
+          msg12[2] = 'M'; //poz2
+          msg13[5] = 'M'; //poz2
+          msg12[3] = 'O'; //poz3
+          msg13[6] = 'O'; //poz3
+          msg12[4] = 'T'; //poz4
+          msg13[7] = 'T'; //poz4
+          msg12[5] = ' '; //poz5
+          msg14[1] = ' '; //poz5
+            
+          msg12[7] = (absTemp % 10) + 48;  //poz7
+          msg14[3] = (absTemp % 10) + 48;  //poz7
+          }
+        else if(temp >= 0){
+          msg12[1] = 'T'; //poz1
+          msg13[4] = 'T'; //poz1
+          msg12[2] = 'M'; //poz2
+          msg13[5] = 'M'; //poz2
+          msg12[3] = 'O'; //poz3
+          msg13[6] = 'O'; //poz3
+          msg12[4] = 'T'; //poz4
+          msg13[7] = 'T'; //poz4
+          msg12[5] = ' '; //poz5
+          msg14[1] = ' '; //poz5
+            
+          msg12[6] = (absTemp % 10) + 48;  //poz6
+          msg14[2] = (absTemp % 10) + 48;  //poz6
+           
+          msg12[7] = '"'; //poz7
+          msg14[3] = '"'; //poz7
+          }
+}
+CAN.sendMsgBuf(0x3DF, NULL, 8, pingMsg); 
+delay(10);
+CAN.sendMsgBuf(0x5C1, NULL, 8, msg5c1);
+CAN.sendMsgBuf(0x4A9, NULL, 8, msg4a9);
+delay(10);
+CAN.sendMsgBuf(0x121, NULL, 8, msg11);
+delay(10);
+CAN.sendMsgBuf(0x121, NULL, 8, msg12);
+delay(10);
+CAN.sendMsgBuf(0x121, NULL, 8, msg13);
+delay(10);
+CAN.sendMsgBuf(0x121, NULL, 8, msg14);
+delay(10);
+CAN.sendMsgBuf(0x121, NULL, 8, msg15);
+delay(10);
+}
